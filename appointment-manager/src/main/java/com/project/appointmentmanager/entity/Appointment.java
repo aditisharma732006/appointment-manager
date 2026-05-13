@@ -3,6 +3,7 @@ package com.project.appointmentmanager.entity;
 import jakarta.persistence.*;
 import lombok.Data;
 import java.time.LocalDateTime;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 @Data
 @Entity
@@ -15,10 +16,12 @@ public class Appointment {
 
     private LocalDateTime bookedAt;
 
+    @JsonIgnore
     @ManyToOne
     @JoinColumn(name = "user_id")
     private User user;
 
+    @JsonIgnore
     @OneToOne
     @JoinColumn(name = "slot_id")
     private TimeSlot timeSlot;

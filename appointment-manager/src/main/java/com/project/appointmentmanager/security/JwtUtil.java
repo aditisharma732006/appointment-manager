@@ -6,37 +6,30 @@ import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.stereotype.Component;
 
-import java.security.Key;
+import javax.crypto.SecretKey;
 import java.util.Date;
 
 @Component
 public class JwtUtil {
 
-
-    private String secretKey = "yourSecretKeyHereMakeItLongEnough123456";
+    private String secretKey = "dGhpc2lzYXZlcnlsb25nc2VjcmV0a2V5Zm9yand0dG9rZW5nZW5lcmF0aW9u";
     private long expiration = 86400000;
 
-
-    //jwt take secretKey in Key object not just nay string
-    private Key getSigningKey() {
+    private SecretKey getSigningKey() {
         byte[] keyBytes = Decoders.BASE64.decode(secretKey);
         return Keys.hmacShaKeyFor(keyBytes);
     }
 
-
-    //takes email and role from use during login and generate the token (called on login)
     public String generateToken(String email, String role) {
         return Jwts.builder()
-                .setSubject(email)              // who this token belongs to
-                .claim("role", role)        //store role inside token
-                .setIssuedAt(new Date())        //created right now
-                .setExpiration(new Date(System.currentTimeMillis() + expiration))   // expires in 24 hours
-                .signWith(getSigningKey())              // sign it with secret key
-                .compact();                             // build the final token string
+                .subject(email)
+                .claim("role", role)
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + expiration))
+                .signWith(getSigningKey())
+                .compact();
     }
 
-
-//    extractEmail() and extractRole() — called on EVERY REQUEST   get from payload
     public String extractEmail(String token) {
         return getClaims(token).getSubject();
     }
@@ -47,21 +40,18 @@ public class JwtUtil {
 
     public boolean isTokenValid(String token) {
         try {
-            getClaims(token); //this line throws if anything is wrong like tampered or expired
+            getClaims(token);
             return true;
         } catch (Exception e) {
             return false;
         }
     }
 
-    //internal helper - do the token verification
-//    his is the actual verification step. parseClaimsJws() checks the signature and expiry in one shot.
-//    If valid, it returns the payload so you can read email and role from it.
     private Claims getClaims(String token) {
-        return Jwts.parserBuilder()
-                .setSigningKey(getSigningKey())
+        return Jwts.parser()
+                .verifyWith(getSigningKey())
                 .build()
-                .parseClaimsJws(token)
-                .getBody();   //return payload aka claims
+                .parseSignedClaims(token)
+                .getPayload();
     }
 }

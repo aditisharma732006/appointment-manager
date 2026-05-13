@@ -3,6 +3,7 @@ package com.project.appointmentmanager.entity;
 import jakarta.persistence.*;
 import lombok.Data;
 import java.util.List;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 @Data
 @Entity
@@ -20,10 +21,13 @@ public class ServiceProvider {
     @Enumerated(EnumType.STRING)
     private Category category;
 
+
+    @JsonIgnore
     @OneToOne
     @JoinColumn(name = "user_id")
     private User user;
 
+    @JsonIgnore
     @OneToMany(mappedBy = "serviceProvider")
     private List<TimeSlot> timeSlots;
 }
