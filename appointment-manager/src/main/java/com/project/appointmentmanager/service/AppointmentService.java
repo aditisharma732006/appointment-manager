@@ -2,6 +2,8 @@ package com.project.appointmentmanager.service;
 
 import com.project.appointmentmanager.dto.response.AppointmentResponseDTO;
 import com.project.appointmentmanager.entity.*;
+import com.project.appointmentmanager.exception.SlotNotAvailableException;
+import com.project.appointmentmanager.exception.UserNotFoundException;
 import com.project.appointmentmanager.repository.AppointmentRepository;
 import com.project.appointmentmanager.repository.SlotRepository;
 import com.project.appointmentmanager.repository.UserRepository;
@@ -22,31 +24,30 @@ public class AppointmentService {
     // POST /appointments/book/{slotId}
     public AppointmentResponseDTO bookAppointment(Long slotId, String email) {
 
-        // Step 1: Find the slot
+        // find the slot
         TimeSlot slot = slotRepository.findById(slotId)
-                .orElseThrow(() -> new RuntimeException("Slot not found"));
+                .orElseThrow(() -> new SlotNotAvailableException("Slot not found with id: " + slotId));
 
-        // Step 2: Check slot is still available
+        // check slot is still available
         if (slot.getStatus() != SlotStatus.AVAILABLE) {
-            throw new RuntimeException("Slot is not available");
+            throw new SlotNotAvailableException("Slot is already booked or expired");
         }
 
-        // Step 3: Find the user by email (email comes from JWT token)
+        // find user by email — email comes from JWT token via @AuthenticationPrincipal
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new UserNotFoundException("User not found with email: " + email));
 
-        // Step 4: Mark slot as BOOKED
+        // mark slot as booked
         slot.setStatus(SlotStatus.BOOKED);
         slotRepository.save(slot);
 
-        // Step 5: Create and save appointment
+        // create and save appointment
         Appointment appointment = new Appointment();
         appointment.setUser(user);
         appointment.setTimeSlot(slot);
         appointment.setBookedAt(LocalDateTime.now());
         appointmentRepository.save(appointment);
 
-        // Step 6: Return response DTO
         return new AppointmentResponseDTO(
                 appointment.getId(),
                 appointment.getBookedAt(),
@@ -58,7 +59,7 @@ public class AppointmentService {
     // GET /appointments → patient sees their own appointments
     public List<AppointmentResponseDTO> getUserAppointments(String email) {
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new UserNotFoundException("User not found with email: " + email));
 
         return appointmentRepository.findByUser(user)
                 .stream()

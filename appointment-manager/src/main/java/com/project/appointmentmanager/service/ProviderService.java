@@ -3,6 +3,7 @@ package com.project.appointmentmanager.service;
 import com.project.appointmentmanager.dto.response.AppointmentResponseDTO;
 import com.project.appointmentmanager.dto.response.ProviderResponseDTO;
 import com.project.appointmentmanager.entity.*;
+import com.project.appointmentmanager.exception.UserNotFoundException;
 import com.project.appointmentmanager.repository.AppointmentRepository;
 import com.project.appointmentmanager.repository.ProviderRepository;
 import com.project.appointmentmanager.repository.UserRepository;
@@ -33,16 +34,16 @@ public class ProviderService {
                 .collect(Collectors.toList());
     }
 
-    // GET /provider/dashboard → provider sees all their appointments
+    // GET /provider/dashboard → provider sees all their booked appointments
     public List<AppointmentResponseDTO> getProviderDashboard(String email) {
 
-        // find the provider profile linked to this logged in user
+        // find user then get their linked provider profile
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new UserNotFoundException("User not found with email: " + email));
 
         ServiceProvider provider = user.getServiceProvider();
 
-        // get all slots of this provider, then get appointments from those slots
+        // go through all provider slots → filter booked → get appointments
         return provider.getTimeSlots()
                 .stream()
                 .filter(slot -> slot.getStatus() == SlotStatus.BOOKED)
@@ -51,7 +52,7 @@ public class ProviderService {
                         appointment.getId(),
                         appointment.getBookedAt(),
                         appointment.getTimeSlot().getDateTime(),
-                        appointment.getUser().getName()   // patient name for provider view
+                        appointment.getUser().getName()  // patient name for provider view
                 ))
                 .collect(Collectors.toList());
     }

@@ -2,6 +2,7 @@ package com.project.appointmentmanager.service;
 
 import com.project.appointmentmanager.dto.response.SlotResponseDTO;
 import com.project.appointmentmanager.entity.*;
+import com.project.appointmentmanager.exception.SlotNotAvailableException;
 import com.project.appointmentmanager.repository.ProviderRepository;
 import com.project.appointmentmanager.repository.SlotRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,11 +32,11 @@ public class SlotService {
             // check if slots already exist for this day → avoid duplicates
             List<TimeSlot> existing = slotRepository.findByServiceProviderAndDateTimeBetween(
                     provider,
-                    LocalDateTime.of(date, LocalTime.MIN),   // 00:00
-                    LocalDateTime.of(date, LocalTime.MAX)    // 23:59
+                    LocalDateTime.of(date, LocalTime.MIN),
+                    LocalDateTime.of(date, LocalTime.MAX)
             );
 
-            if (!existing.isEmpty()) continue;  // slots exist → skip this day
+            if (!existing.isEmpty()) continue;  // slots exist → skip
 
             // 9am to 5pm, one slot per hour
             for (int hour = 9; hour <= 17; hour++) {
@@ -48,7 +49,7 @@ public class SlotService {
         }
     }
 
-    // called by scheduler to expire past slots
+    // called by scheduler every midnight to expire past slots
     public void expirePastSlots() {
         List<TimeSlot> pastSlots = slotRepository.findByStatusAndDateTimeBefore(
                 SlotStatus.AVAILABLE,
@@ -61,7 +62,7 @@ public class SlotService {
     // GET /providers/{id}/slots → available slots for next 5 days
     public List<SlotResponseDTO> getAvailableSlots(Long providerId) {
         ServiceProvider provider = providerRepository.findById(providerId)
-                .orElseThrow(() -> new RuntimeException("Provider not found"));
+                .orElseThrow(() -> new SlotNotAvailableException("Provider not found"));
 
         List<TimeSlot> slots = slotRepository.findByServiceProviderAndStatusAndDateTimeBetween(
                 provider,
@@ -70,7 +71,7 @@ public class SlotService {
                 LocalDateTime.now().plusDays(5)
         );
 
-        // convert entity → DTO before returning
+        // convert entity → DTO
         return slots.stream()
                 .map(slot -> new SlotResponseDTO(
                         slot.getId(),
@@ -83,7 +84,7 @@ public class SlotService {
     // PUT /slots/{id} → provider marks slot available or unavailable
     public SlotResponseDTO updateSlotStatus(Long slotId, SlotStatus newStatus) {
         TimeSlot slot = slotRepository.findById(slotId)
-                .orElseThrow(() -> new RuntimeException("Slot not found"));
+                .orElseThrow(() -> new SlotNotAvailableException("Slot not found with id: " + slotId));
 
         slot.setStatus(newStatus);
         slotRepository.save(slot);
