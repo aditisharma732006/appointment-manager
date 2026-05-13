@@ -6,7 +6,10 @@ import org.springframework.stereotype.Repository;
 import java.util.Optional;
 
 @Repository
+//tells Spring this is Layer 3
+//User is the entity, Long is the type of its @Id
 public interface UserRepository extends JpaRepository<User, Long> {
 
     Optional<User> findByEmail(String email);
+//    SELECT * FROM users WHERE email = ?
 }
