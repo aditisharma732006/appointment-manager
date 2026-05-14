@@ -22,23 +22,19 @@ public class SlotService {
 
     // called at registration + by scheduler every midnight
     public void generateSlotsForProvider(ServiceProvider provider) {
-
         LocalDate today = LocalDate.now();
 
-        // generate for next 5 days
         for (int i = 0; i < 5; i++) {
             LocalDate date = today.plusDays(i);
 
-            // check if slots already exist for this day → avoid duplicates
             List<TimeSlot> existing = slotRepository.findByServiceProviderAndDateTimeBetween(
                     provider,
                     LocalDateTime.of(date, LocalTime.MIN),
                     LocalDateTime.of(date, LocalTime.MAX)
             );
 
-            if (!existing.isEmpty()) continue;  // slots exist → skip
+            if (!existing.isEmpty()) continue;
 
-            // 9am to 5pm, one slot per hour
             for (int hour = 9; hour <= 17; hour++) {
                 TimeSlot slot = new TimeSlot();
                 slot.setDateTime(LocalDateTime.of(date, LocalTime.of(hour, 0)));
@@ -49,7 +45,7 @@ public class SlotService {
         }
     }
 
-    // called by scheduler every midnight to expire past slots
+    // called by scheduler every midnight
     public void expirePastSlots() {
         List<TimeSlot> pastSlots = slotRepository.findByStatusAndDateTimeBefore(
                 SlotStatus.AVAILABLE,
@@ -59,7 +55,7 @@ public class SlotService {
         slotRepository.saveAll(pastSlots);
     }
 
-    // GET /providers/{id}/slots → available slots for next 5 days
+    // GET /providers/{id}/slots → patients see only AVAILABLE slots
     public List<SlotResponseDTO> getAvailableSlots(Long providerId) {
         ServiceProvider provider = providerRepository.findById(providerId)
                 .orElseThrow(() -> new SlotNotAvailableException("Provider not found"));
@@ -71,7 +67,6 @@ public class SlotService {
                 LocalDateTime.now().plusDays(5)
         );
 
-        // convert entity → DTO
         return slots.stream()
                 .map(slot -> new SlotResponseDTO(
                         slot.getId(),
@@ -81,14 +76,29 @@ public class SlotService {
                 .collect(Collectors.toList());
     }
 
-    // PUT /slots/{id} → provider marks slot available or unavailable
-    public SlotResponseDTO updateSlotStatus(Long slotId, SlotStatus newStatus) {
+    // PUT /slots/{id} → provider toggles AVAILABLE ↔ UNAVAILABLE
+    public SlotResponseDTO toggleSlotStatus(Long slotId, String email) {
         TimeSlot slot = slotRepository.findById(slotId)
                 .orElseThrow(() -> new SlotNotAvailableException("Slot not found with id: " + slotId));
 
-        slot.setStatus(newStatus);
-        slotRepository.save(slot);
+        // verify slot belongs to this provider
+        if (!slot.getServiceProvider().getUser().getEmail().equals(email)) {
+            throw new RuntimeException("Unauthorized to modify this slot");
+        }
 
+        // cannot modify booked or expired slots
+        if (slot.getStatus() == SlotStatus.BOOKED || slot.getStatus() == SlotStatus.EXPIRED) {
+            throw new RuntimeException("Cannot modify a BOOKED or EXPIRED slot");
+        }
+
+        // toggle
+        if (slot.getStatus() == SlotStatus.AVAILABLE) {
+            slot.setStatus(SlotStatus.UNAVAILABLE);
+        } else {
+            slot.setStatus(SlotStatus.AVAILABLE);
+        }
+
+        slotRepository.save(slot);
         return new SlotResponseDTO(slot.getId(), slot.getDateTime(), slot.getStatus().name());
     }
 }

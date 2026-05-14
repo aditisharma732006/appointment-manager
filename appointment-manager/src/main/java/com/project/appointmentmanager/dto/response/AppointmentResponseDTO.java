@@ -11,4 +11,6 @@ public class AppointmentResponseDTO {
     private LocalDateTime bookedAt;
     private LocalDateTime slotDateTime;
     private String providerName;
+    private String providerCategory;
+    private String providerLocation;
 }

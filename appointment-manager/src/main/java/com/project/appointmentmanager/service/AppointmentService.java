@@ -24,24 +24,19 @@ public class AppointmentService {
     // POST /appointments/book/{slotId}
     public AppointmentResponseDTO bookAppointment(Long slotId, String email) {
 
-        // find the slot
         TimeSlot slot = slotRepository.findById(slotId)
                 .orElseThrow(() -> new SlotNotAvailableException("Slot not found with id: " + slotId));
 
-        // check slot is still available
         if (slot.getStatus() != SlotStatus.AVAILABLE) {
-            throw new SlotNotAvailableException("Slot is already booked or expired");
+            throw new SlotNotAvailableException("Slot is not available");
         }
 
-        // find user by email — email comes from JWT token via @AuthenticationPrincipal
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UserNotFoundException("User not found with email: " + email));
 
-        // mark slot as booked
         slot.setStatus(SlotStatus.BOOKED);
         slotRepository.save(slot);
 
-        // create and save appointment
         Appointment appointment = new Appointment();
         appointment.setUser(user);
         appointment.setTimeSlot(slot);
@@ -52,7 +47,9 @@ public class AppointmentService {
                 appointment.getId(),
                 appointment.getBookedAt(),
                 slot.getDateTime(),
-                slot.getServiceProvider().getName()
+                slot.getServiceProvider().getName(),
+                slot.getServiceProvider().getCategory().name(),
+                slot.getServiceProvider().getLocation()
         );
     }
 
@@ -67,8 +64,36 @@ public class AppointmentService {
                         appointment.getId(),
                         appointment.getBookedAt(),
                         appointment.getTimeSlot().getDateTime(),
-                        appointment.getTimeSlot().getServiceProvider().getName()
+                        appointment.getTimeSlot().getServiceProvider().getName(),
+                        appointment.getTimeSlot().getServiceProvider().getCategory().name(),
+                        appointment.getTimeSlot().getServiceProvider().getLocation()
                 ))
                 .collect(Collectors.toList());
+    }
+
+    // DELETE /appointments/{id} → user cancels their appointment
+    public String cancelAppointment(Long appointmentId, String email) {
+
+        Appointment appointment = appointmentRepository.findById(appointmentId)
+                .orElseThrow(() -> new RuntimeException("Appointment not found with id: " + appointmentId));
+
+        // only the user who booked can cancel
+        if (!appointment.getUser().getEmail().equals(email)) {
+            throw new RuntimeException("Unauthorized to cancel this appointment");
+        }
+
+        // cannot cancel past appointments
+        if (appointment.getTimeSlot().getDateTime().isBefore(LocalDateTime.now())) {
+            throw new RuntimeException("Cannot cancel a past appointment");
+        }
+
+        // free the slot back to available
+        TimeSlot slot = appointment.getTimeSlot();
+        slot.setStatus(SlotStatus.AVAILABLE);
+        slotRepository.save(slot);
+
+        appointmentRepository.delete(appointment);
+
+        return "Appointment cancelled successfully";
     }
 }

@@ -18,8 +18,6 @@ public class AppointmentController {
     @GetMapping("/appointments")
     public ResponseEntity<List<AppointmentResponseDTO>> getUserAppointments(
             @AuthenticationPrincipal String email) {
-        // @AuthenticationPrincipal → reads email from SecurityContext
-        // remember JwtFilter set email as the principal
         return ResponseEntity.ok(appointmentService.getUserAppointments(email));
     }
 
@@ -29,5 +27,13 @@ public class AppointmentController {
             @PathVariable Long slotId,
             @AuthenticationPrincipal String email) {
         return ResponseEntity.ok(appointmentService.bookAppointment(slotId, email));
+    }
+
+    // DELETE /appointments/{id} → user cancels their appointment
+    @DeleteMapping("/appointments/{id}")
+    public ResponseEntity<String> cancelAppointment(
+            @PathVariable Long id,
+            @AuthenticationPrincipal String email) {
+        return ResponseEntity.ok(appointmentService.cancelAppointment(id, email));
     }
 }

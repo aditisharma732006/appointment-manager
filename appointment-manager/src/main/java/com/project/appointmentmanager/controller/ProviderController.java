@@ -26,16 +26,23 @@ public class ProviderController {
         return ResponseEntity.ok(providerService.getProvidersByCategory(category));
     }
 
-    // GET /providers/{id}/slots
+    // GET /providers/{id}/slots → patient sees available slots
     @GetMapping("/providers/{id}/slots")
     public ResponseEntity<List<SlotResponseDTO>> getSlots(@PathVariable Long id) {
         return ResponseEntity.ok(slotService.getAvailableSlots(id));
     }
 
-    // GET /provider/dashboard → provider sees their booked appointments
+    // GET /provider/dashboard → provider sees booked appointments
     @GetMapping("/provider/dashboard")
     public ResponseEntity<List<AppointmentResponseDTO>> getDashboard(
             @AuthenticationPrincipal String email) {
         return ResponseEntity.ok(providerService.getProviderDashboard(email));
+    }
+
+    // GET /provider/slots → provider sees all slots to manage availability
+    @GetMapping("/provider/slots")
+    public ResponseEntity<List<SlotResponseDTO>> getProviderSlots(
+            @AuthenticationPrincipal String email) {
+        return ResponseEntity.ok(providerService.getProviderSlots(email));
     }
 }

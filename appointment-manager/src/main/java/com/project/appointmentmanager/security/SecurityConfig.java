@@ -31,6 +31,7 @@ public class SecurityConfig {
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         .requestMatchers("/provider/**").hasRole("PROVIDER")
                         .requestMatchers(org.springframework.http.HttpMethod.PUT, "/slots/**").hasRole("PROVIDER")
+                        .requestMatchers(org.springframework.http.HttpMethod.DELETE, "/admin/providers/**").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
