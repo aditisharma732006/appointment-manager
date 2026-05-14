@@ -28,7 +28,7 @@ public class User {
 //    @Enumerated(EnumType.STRING) — store the role as a String in DB ("USER", "PROVIDER", "ADMIN")
 
     @JsonIgnore
-    @OneToOne(mappedBy = "user")
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
     private ServiceProvider serviceProvider;
 
     @JsonIgnore

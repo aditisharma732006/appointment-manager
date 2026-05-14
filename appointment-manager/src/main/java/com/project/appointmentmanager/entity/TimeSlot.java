@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Data;
 import java.time.LocalDateTime;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import jakarta.persistence.CascadeType;
 
 @Data
 @Entity
@@ -25,6 +26,6 @@ public class TimeSlot {
     private ServiceProvider serviceProvider;
 
     @JsonIgnore
-    @OneToOne(mappedBy = "timeSlot")
+    @OneToOne(mappedBy = "timeSlot" , cascade = CascadeType.ALL)
     private Appointment appointment;
 }

@@ -90,6 +90,7 @@ public class AppointmentService {
         // free the slot back to available
         TimeSlot slot = appointment.getTimeSlot();
         slot.setStatus(SlotStatus.AVAILABLE);
+        slot.setAppointment(null);
         slotRepository.save(slot);
 
         appointmentRepository.delete(appointment);

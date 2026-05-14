@@ -46,7 +46,13 @@ public class AdminController {
     public ResponseEntity<String> deleteProvider(@PathVariable Long id) {
         ServiceProvider provider = providerRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Provider not found with id: " + id));
-        providerRepository.delete(provider);
+
+        // delete all slots for this provider first
+        slotRepository.deleteAll(slotRepository.findByServiceProvider(provider));
+
+        // then delete user → cascade deletes provider
+        userRepository.delete(provider.getUser());
+
         return ResponseEntity.ok("Provider removed successfully");
     }
 
