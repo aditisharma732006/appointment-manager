@@ -7,6 +7,7 @@ import com.project.appointmentmanager.exception.UserNotFoundException;
 import com.project.appointmentmanager.repository.AppointmentRepository;
 import com.project.appointmentmanager.repository.SlotRepository;
 import com.project.appointmentmanager.repository.UserRepository;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -72,6 +73,7 @@ public class AppointmentService {
     }
 
     // DELETE /appointments/{id} → user cancels their appointment
+    @Transactional
     public String cancelAppointment(Long appointmentId, String email) {
 
         Appointment appointment = appointmentRepository.findById(appointmentId)
