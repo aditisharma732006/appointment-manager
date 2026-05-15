@@ -1,11 +1,11 @@
 import React from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate, Outlet } from 'react-router-dom';
-import { LogOut, Calendar } from 'lucide-react';
+import { LogOut, Calendar, User } from 'lucide-react';
 import { Button } from '../ui/Button';
 
 export function Layout() {
-  const { role, logout } = useAuth();
+  const { role, name, logout } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -19,14 +19,15 @@ export function Layout() {
         <div className="flex items-center space-x-2 text-[#6366f1]">
           <Calendar className="h-6 w-6" />
           <span className="text-xl font-bold tracking-tight text-gray-900">
-            BookIt<span className="text-[#6366f1]">.</span>
+            Appointment Booking
           </span>
         </div>
-        
-        <div className="flex items-center space-x-4">
-          <span className="text-sm font-medium text-gray-500 uppercase tracking-wider bg-gray-200 px-2.5 py-1 rounded-md">
-            {role}
-          </span>
+
+        <div className="flex items-center space-x-3">
+          <div className="inline-flex items-center gap-2 text-sm text-gray-700 bg-gray-100 px-3 py-2 rounded-full">
+            <User className="h-4 w-4 text-[#6366f1]" />
+            <span>{name || role || 'Guest'}</span>
+          </div>
           <Button variant="ghost" size="sm" onClick={handleLogout} className="text-gray-600 hover:text-red-600 hover:bg-red-50">
             <LogOut className="h-4 w-4 mr-2" />
             Logout
