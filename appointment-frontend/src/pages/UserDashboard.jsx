@@ -155,107 +155,188 @@ export function UserDashboard() {
         </div>
       )}
 
-      {activeTab === 'browse' && selectedProvider && (
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <button 
-                onClick={() => setSelectedProvider(null)}
-                className="text-sm font-medium text-[#6366f1] hover:underline mb-2 block"
-              >
-                &larr; Back to Providers
-              </button>
-              <h2 className="text-xl font-bold text-gray-900">Available Slots</h2>
-              <p className="text-gray-500">Booking with {selectedProvider.name}</p>
+      {activeTab === 'browse' && selectedProvider && (() => {
+        const availableSlots = slots.filter(s => s.status === 'AVAILABLE');
+        const groupedSlots = availableSlots.reduce((acc, slot) => {
+          const dateStr = format(new Date(slot.dateTime), 'MMMM d, yyyy');
+          if (!acc[dateStr]) acc[dateStr] = [];
+          acc[dateStr].push(slot);
+          return acc;
+        }, {});
+        const sortedDates = Object.keys(groupedSlots).sort((a, b) => new Date(a) - new Date(b));
+
+        return (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <button 
+                  onClick={() => setSelectedProvider(null)}
+                  className="text-sm font-medium text-[#6366f1] hover:underline mb-2 block"
+                >
+                  &larr; Back to Providers
+                </button>
+                <h2 className="text-xl font-bold text-gray-900">Available Slots</h2>
+                <p className="text-gray-500">Booking with {selectedProvider.name}</p>
+              </div>
+            </div>
+
+            <div className="space-y-8">
+              {sortedDates.length > 0 ? (
+                sortedDates.map(date => (
+                  <div key={date} className="space-y-4">
+                    <h3 className="text-lg font-bold text-gray-900 border-b pb-2">{date}</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                      {groupedSlots[date].map(slot => (
+                        <Card key={slot.id} className="border-green-100 hover:border-green-300 transition-colors bg-white">
+                          <CardContent className="p-4 flex flex-col items-center justify-center text-center space-y-3">
+                            <Calendar className="w-6 h-6 text-green-500 mb-1" />
+                            <div>
+                              <div className="font-semibold text-gray-900">{format(new Date(slot.dateTime), 'MMM d, yyyy')}</div>
+                              <div className="text-sm text-gray-500">{format(new Date(slot.dateTime), 'h:mm a')}</div>
+                            </div>
+                            <Button size="sm" variant="outline" className="w-full border-green-500 text-green-600 hover:bg-green-50" onClick={() => handleBookSlot(slot.id)}>
+                              Book Time
+                            </Button>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="col-span-full py-12 text-center text-gray-500 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                  No available slots at the moment.
+                </div>
+              )}
             </div>
           </div>
+        );
+      })()}
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {slots.filter(s => s.status === 'AVAILABLE').map(slot => (
-              <Card key={slot.id} className="border-green-100 hover:border-green-300 transition-colors bg-white">
-                <CardContent className="p-4 flex flex-col items-center justify-center text-center space-y-3">
-                  <Calendar className="w-6 h-6 text-green-500 mb-1" />
-                  <div>
-                    <div className="font-semibold text-gray-900">{format(new Date(slot.dateTime), 'MMM d, yyyy')}</div>
-                    <div className="text-sm text-gray-500">{format(new Date(slot.dateTime), 'h:mm a')}</div>
+      {activeTab === 'appointments' && (() => {
+        const now = new Date();
+        const upcomingAppointments = appointments.filter(apt => new Date(apt.slotDateTime) > now);
+        const pastAppointments = appointments.filter(apt => new Date(apt.slotDateTime) <= now);
+
+        return (
+          <div className="space-y-8">
+            {/* Upcoming Appointments Section */}
+            <div className="space-y-4">
+              <h2 className="text-xl font-bold tracking-tight text-gray-900">
+                Upcoming Appointments ({upcomingAppointments.length})
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {upcomingAppointments.length > 0 ? (
+                  upcomingAppointments.map(apt => (
+                    <Card key={apt.id} className="border-gray-200 transition-opacity bg-white">
+                      <CardHeader className="pb-4">
+                        <div className="flex items-start justify-between">
+                          <div className="space-y-1">
+                            <Badge variant="success" className="mb-2">Booked</Badge>
+                            <CardTitle className="text-lg">{apt.providerName}</CardTitle>
+                            <p className="text-xs text-gray-500 font-medium">{apt.category?.replace('_', ' ')}</p>
+                          </div>
+                          <div className="bg-green-50 text-green-600 p-2 rounded-lg">
+                            <CheckCircle2 className="w-5 h-5" />
+                          </div>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-gray-50 p-3 rounded-lg border border-gray-100 gap-2">
+                          <div className="flex items-center text-sm text-gray-700">
+                            <Calendar className="w-4 h-4 mr-3 text-[#6366f1]" />
+                            <span className="font-medium">{format(new Date(apt.slotDateTime), 'MMM d, yyyy - h:mm a')}</span>
+                          </div>
+                          <Badge variant="success" className="bg-green-100 text-green-700">
+                            Upcoming
+                          </Badge>
+                        </div>
+                        <div className="flex items-center text-sm text-gray-500 px-1">
+                          <MapPin className="w-4 h-4 mr-2 text-gray-400" />
+                          {apt.location}
+                        </div>
+                        <div className="text-xs text-gray-400 px-1 mt-4">
+                          Booked on {format(new Date(apt.bookedAt), 'MMM d, yyyy')}
+                        </div>
+                      </CardContent>
+                      <CardFooter className="pt-4 border-t border-gray-50">
+                        <Button variant="danger" className="w-full bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 border-0" onClick={() => handleCancelAppointment(apt.id)}>
+                          <XCircle className="w-4 h-4 mr-2" />
+                          Cancel Appointment
+                        </Button>
+                      </CardFooter>
+                    </Card>
+                  ))
+                ) : appointments.length === 0 ? (
+                  <div className="col-span-full py-16 text-center bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+                    <Calendar className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                    <h3 className="text-lg font-medium text-gray-900">No appointments yet</h3>
+                    <p className="text-gray-500 mt-1">When you book an appointment, it will appear here.</p>
+                    <Button className="mt-4" onClick={() => setActiveTab('browse')}>Find a Provider</Button>
                   </div>
-                  <Button size="sm" variant="outline" className="w-full border-green-500 text-green-600 hover:bg-green-50" onClick={() => handleBookSlot(slot.id)}>
-                    Book Time
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
-            {slots.filter(s => s.status === 'AVAILABLE').length === 0 && (
-              <div className="col-span-full py-12 text-center text-gray-500 bg-gray-50 rounded-xl border border-dashed border-gray-200">
-                No available slots at the moment.
+                ) : (
+                  <div className="col-span-full py-16 text-center bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+                    <CheckCircle2 className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                    <h3 className="text-lg font-medium text-gray-900">All caught up!</h3>
+                    <p className="text-gray-500 mt-1">You have no upcoming appointments.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Past Appointments Section */}
+            {pastAppointments.length > 0 && (
+              <div className="space-y-4 pt-4 border-t border-gray-100">
+                <h2 className="text-lg font-medium text-gray-500">
+                  Past Appointments ({pastAppointments.length})
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {pastAppointments.map(apt => (
+                    <Card key={apt.id} className="border-gray-200 transition-opacity bg-gray-50 opacity-75">
+                      <CardHeader className="pb-4">
+                        <div className="flex items-start justify-between">
+                          <div className="space-y-1">
+                            <Badge variant="success" className="mb-2">Booked</Badge>
+                            <CardTitle className="text-lg">{apt.providerName}</CardTitle>
+                            <p className="text-xs text-gray-500 font-medium">{apt.category?.replace('_', ' ')}</p>
+                          </div>
+                          <div className="bg-gray-100 text-gray-400 p-2 rounded-lg">
+                            <CheckCircle2 className="w-5 h-5" />
+                          </div>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-gray-50 p-3 rounded-lg border border-gray-100 gap-2">
+                          <div className="flex items-center text-sm text-gray-700">
+                            <Calendar className="w-4 h-4 mr-3 text-[#6366f1]" />
+                            <span className="font-medium">{format(new Date(apt.slotDateTime), 'MMM d, yyyy - h:mm a')}</span>
+                          </div>
+                          <Badge variant="secondary" className="bg-gray-200 text-gray-600">
+                            Completed
+                          </Badge>
+                        </div>
+                        <div className="flex items-center text-sm text-gray-500 px-1">
+                          <MapPin className="w-4 h-4 mr-2 text-gray-400" />
+                          {apt.location}
+                        </div>
+                        <div className="text-xs text-gray-400 px-1 mt-4">
+                          Booked on {format(new Date(apt.bookedAt), 'MMM d, yyyy')}
+                        </div>
+                      </CardContent>
+                      <CardFooter className="pt-4 border-t border-gray-50">
+                        <Button disabled variant="secondary" className="w-full bg-gray-100 text-gray-400 hover:bg-gray-100 cursor-not-allowed border-0">
+                          <XCircle className="w-4 h-4 mr-2" />
+                          Cannot Cancel
+                        </Button>
+                      </CardFooter>
+                    </Card>
+                  ))}
+                </div>
               </div>
             )}
           </div>
-        </div>
-      )}
-
-      {activeTab === 'appointments' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {appointments.map(apt => {
-            const isPast = new Date(apt.slotDateTime) < new Date();
-            return (
-              <Card key={apt.id} className={`border-gray-200 transition-opacity ${isPast ? 'bg-gray-50 opacity-75' : 'bg-white'}`}>
-                <CardHeader className="pb-4">
-                  <div className="flex items-start justify-between">
-                    <div className="space-y-1">
-                      <Badge variant="success" className="mb-2">Booked</Badge>
-                      <CardTitle className="text-lg">{apt.providerName}</CardTitle>
-                      <p className="text-xs text-gray-500 font-medium">{apt.category?.replace('_', ' ')}</p>
-                    </div>
-                    <div className={`${isPast ? 'bg-gray-100 text-gray-400' : 'bg-green-50 text-green-600'} p-2 rounded-lg`}>
-                      <CheckCircle2 className="w-5 h-5" />
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-gray-50 p-3 rounded-lg border border-gray-100 gap-2">
-                    <div className="flex items-center text-sm text-gray-700">
-                      <Calendar className="w-4 h-4 mr-3 text-[#6366f1]" />
-                      <span className="font-medium">{format(new Date(apt.slotDateTime), 'MMM d, yyyy - h:mm a')}</span>
-                    </div>
-                    <Badge variant={isPast ? 'secondary' : 'success'} className={isPast ? 'bg-gray-200 text-gray-600' : 'bg-green-100 text-green-700'}>
-                      {isPast ? 'Completed' : 'Upcoming'}
-                    </Badge>
-                  </div>
-                  <div className="flex items-center text-sm text-gray-500 px-1">
-                    <MapPin className="w-4 h-4 mr-2 text-gray-400" />
-                    {apt.location}
-                  </div>
-                  <div className="text-xs text-gray-400 px-1 mt-4">
-                    Booked on {format(new Date(apt.bookedAt), 'MMM d, yyyy')}
-                  </div>
-                </CardContent>
-                <CardFooter className="pt-4 border-t border-gray-50">
-                  {isPast ? (
-                    <Button disabled variant="secondary" className="w-full bg-gray-100 text-gray-400 hover:bg-gray-100 cursor-not-allowed border-0">
-                      <XCircle className="w-4 h-4 mr-2" />
-                      Cannot Cancel
-                    </Button>
-                  ) : (
-                    <Button variant="danger" className="w-full bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 border-0" onClick={() => handleCancelAppointment(apt.id)}>
-                      <XCircle className="w-4 h-4 mr-2" />
-                      Cancel Appointment
-                    </Button>
-                  )}
-                </CardFooter>
-              </Card>
-            );
-          })}
-          {appointments.length === 0 && (
-            <div className="col-span-full py-16 text-center bg-gray-50 rounded-2xl border border-dashed border-gray-200">
-              <Calendar className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-              <h3 className="text-lg font-medium text-gray-900">No appointments yet</h3>
-              <p className="text-gray-500 mt-1">When you book an appointment, it will appear here.</p>
-              <Button className="mt-4" onClick={() => setActiveTab('browse')}>Find a Provider</Button>
-            </div>
-          )}
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 }
