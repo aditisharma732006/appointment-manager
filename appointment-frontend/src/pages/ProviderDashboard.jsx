@@ -61,7 +61,7 @@ export function ProviderDashboard() {
     <div className="space-y-8">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-gray-900">Provider Dashboard</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-gray-900">Appointment Booking</h1>
           <p className="text-gray-500">Manage your appointments and availability.</p>
         </div>
         <div className="flex bg-gray-100 p-1 rounded-xl w-fit">
@@ -115,43 +115,70 @@ export function ProviderDashboard() {
         </div>
       )}
 
-      {activeTab === 'slots' && (
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {slots.map(slot => (
-              <Card key={slot.id} className="border-gray-200 bg-white">
-                <CardContent className="p-5 flex flex-col items-center justify-center text-center space-y-3">
-                  {getStatusBadge(slot.status)}
-                  <div className="mt-2">
-                    <div className="font-semibold text-gray-900">{format(new Date(slot.dateTime), 'MMM d, yyyy')}</div>
-                    <div className="text-sm text-gray-500 font-medium">{format(new Date(slot.dateTime), 'h:mm a')}</div>
+      {activeTab === 'slots' && (() => {
+        const visibleSlots = slots.filter(slot => slot.status !== 'EXPIRED');
+        const groupedSlots = visibleSlots.reduce((acc, slot) => {
+          const dateStr = format(new Date(slot.dateTime), 'MMMM d, yyyy');
+          if (!acc[dateStr]) acc[dateStr] = [];
+          acc[dateStr].push(slot);
+          return acc;
+        }, {});
+
+        const sortedDates = Object.keys(groupedSlots).sort((a, b) => new Date(a) - new Date(b));
+
+        return (
+          <div className="space-y-8">
+            {sortedDates.length > 0 ? (
+              sortedDates.map(date => (
+                <div key={date} className="space-y-4">
+                  <h3 className="text-lg font-bold text-gray-900 border-b pb-2">{date}</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {groupedSlots[date].map(slot => (
+                      <Card 
+                        key={slot.id} 
+                        className={`border-gray-200 ${slot.status === 'UNAVAILABLE' ? 'bg-gray-50' : 'bg-white'}`}
+                      >
+                        <CardContent className="p-5 flex flex-col items-center justify-center text-center space-y-3">
+                          {getStatusBadge(slot.status)}
+                          <div className="mt-2">
+                            <div className="font-semibold text-gray-900">{format(new Date(slot.dateTime), 'MMM d, yyyy')}</div>
+                            <div className="text-sm text-gray-500 font-medium">{format(new Date(slot.dateTime), 'h:mm a')}</div>
+                          </div>
+                          
+                          {slot.status === 'AVAILABLE' && (
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              className="w-full mt-2 border-red-500 text-red-600 hover:bg-red-50 hover:text-red-700" 
+                              onClick={() => handleToggleSlot(slot.id)}
+                            >
+                              <ToggleRight className="w-4 h-4 mr-2" /> Mark Unavailable
+                            </Button>
+                          )}
+
+                          {slot.status === 'UNAVAILABLE' && (
+                            <Button 
+                              size="sm" 
+                              className="w-full mt-2 bg-green-600 hover:bg-green-700 text-white border-transparent" 
+                              onClick={() => handleToggleSlot(slot.id)}
+                            >
+                              <ToggleLeft className="w-4 h-4 mr-2" /> Mark Available
+                            </Button>
+                          )}
+                        </CardContent>
+                      </Card>
+                    ))}
                   </div>
-                  
-                  {(slot.status === 'AVAILABLE' || slot.status === 'UNAVAILABLE') && (
-                    <Button 
-                      size="sm" 
-                      variant={slot.status === 'AVAILABLE' ? 'outline' : 'primary'}
-                      className="w-full mt-2" 
-                      onClick={() => handleToggleSlot(slot.id)}
-                    >
-                      {slot.status === 'AVAILABLE' ? (
-                        <><ToggleRight className="w-4 h-4 mr-2 text-green-500" /> Mark Unavailable</>
-                      ) : (
-                        <><ToggleLeft className="w-4 h-4 mr-2" /> Mark Available</>
-                      )}
-                    </Button>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
-            {slots.length === 0 && (
-              <div className="col-span-full py-12 text-center text-gray-500 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                </div>
+              ))
+            ) : (
+              <div className="py-12 text-center text-gray-500 bg-gray-50 rounded-xl border border-dashed border-gray-200">
                 No slots configured yet.
               </div>
             )}
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 }

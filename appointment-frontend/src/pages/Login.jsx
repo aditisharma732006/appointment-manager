@@ -19,8 +19,8 @@ export function Login() {
     setError('');
     try {
       const response = await api.post('/auth/login', { email, password });
-      const { token, role } = response.data;
-      login(token, role);
+      const { token, role, name: userName } = response.data;
+      login(token, role, userName);
       
       if (role === 'USER') navigate('/user');
       else if (role === 'PROVIDER') navigate('/provider');
